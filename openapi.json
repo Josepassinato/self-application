@@ -1,0 +1,606 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Immigration Law API",
+    "version": "1.0.0",
+    "description": "API pública para gestão de casos de imigração, documentos e templates. Esta API permite que parceiros integrem seus sistemas com nossa plataforma de gestão jurídica especializada em direito de imigração.",
+    "contact": {
+      "name": "API Support",
+      "email": "api@lawfirm.com",
+      "url": "https://docs.lawfirm.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Production API"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "API Key para autenticação. Use: Authorization: Bearer YOUR_API_KEY"
+      }
+    },
+    "schemas": {
+      "Case": {
+        "type": "object",
+        "description": "Representação de um caso de imigração",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador único do caso"
+          },
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do cliente associado ao caso"
+          },
+          "tipo_visto": {
+            "type": "string",
+            "description": "Tipo de visto sendo processado",
+            "example": "H1B",
+            "enum": ["H1B", "L1", "O1", "EB1", "EB2", "EB3", "F1", "B1/B2"]
+          },
+          "titulo": {
+            "type": "string",
+            "description": "Título descritivo do caso",
+            "maxLength": 200
+          },
+          "descricao": {
+            "type": "string",
+            "description": "Descrição detalhada do caso"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status atual do caso",
+            "enum": ["draft", "active", "review", "completed", "cancelled"]
+          },
+          "data_abertura": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data de abertura do caso"
+          },
+          "data_conclusao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Data de conclusão do caso (se aplicável)"
+          },
+          "clients": {
+            "type": "object",
+            "description": "Informações do cliente",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nome": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              }
+            }
+          }
+        },
+        "required": ["id", "client_id", "tipo_visto", "status"]
+      },
+      "CreateCaseRequest": {
+        "type": "object",
+        "description": "Dados necessários para criar um novo caso",
+        "required": ["client_id", "tipo_visto"],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do cliente para o qual o caso será criado"
+          },
+          "tipo_visto": {
+            "type": "string",
+            "description": "Tipo de visto a ser processado",
+            "example": "H1B",
+            "enum": ["H1B", "L1", "O1", "EB1", "EB2", "EB3", "F1", "B1/B2"]
+          },
+          "titulo": {
+            "type": "string",
+            "description": "Título personalizado para o caso (opcional)",
+            "maxLength": 200
+          },
+          "descricao": {
+            "type": "string",
+            "description": "Descrição detalhada do caso (opcional)"
+          }
+        },
+        "example": {
+          "client_id": "123e4567-e89b-12d3-a456-426614174000",
+          "tipo_visto": "H1B",
+          "titulo": "H1B Application for John Doe",
+          "descricao": "Initial H1B petition for software engineer position"
+        }
+      },
+      "Document": {
+        "type": "object",
+        "description": "Documento associado a um caso",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador único do documento"
+          },
+          "case_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do caso ao qual o documento pertence"
+          },
+          "nome": {
+            "type": "string",
+            "description": "Nome do arquivo do documento",
+            "maxLength": 255
+          },
+          "tipo": {
+            "type": "string",
+            "description": "Tipo/categoria do documento",
+            "example": "passport",
+            "enum": ["passport", "diploma", "resume", "photo", "form", "evidence", "correspondence"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL para acesso ao documento"
+          },
+          "tamanho": {
+            "type": "integer",
+            "description": "Tamanho do arquivo em bytes",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "Status do processamento do documento",
+            "enum": ["pending", "processing", "completed", "error"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data de criação do documento"
+          }
+        },
+        "required": ["id", "case_id", "nome", "tipo", "url", "status"]
+      },
+      "AddDocumentRequest": {
+        "type": "object",
+        "description": "Dados para adicionar um documento a um caso",
+        "required": ["nome", "tipo", "url"],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "description": "Nome do arquivo",
+            "maxLength": 255,
+            "example": "passport-scan.pdf"
+          },
+          "tipo": {
+            "type": "string",
+            "description": "Tipo do documento",
+            "example": "passport",
+            "enum": ["passport", "diploma", "resume", "photo", "form", "evidence", "correspondence"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL onde o documento está hospedado"
+          },
+          "tamanho": {
+            "type": "integer",
+            "description": "Tamanho do arquivo em bytes (opcional)",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "nome": "passport-scan.pdf",
+          "tipo": "passport",
+          "url": "https://storage.example.com/docs/passport-scan.pdf",
+          "tamanho": 1024000
+        }
+      },
+      "CaseStatus": {
+        "type": "object",
+        "description": "Status resumido de um caso",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do caso"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status atual",
+            "enum": ["draft", "active", "review", "completed", "cancelled"]
+          },
+          "data_abertura": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data de abertura"
+          },
+          "data_conclusao": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Data de conclusão (se aplicável)"
+          }
+        },
+        "required": ["id", "status", "data_abertura"]
+      },
+      "Template": {
+        "type": "object",
+        "description": "Template de caso disponível",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do template"
+          },
+          "visa_type": {
+            "type": "string",
+            "description": "Tipo de visto para o qual o template se aplica"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descrição do template"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "Se o template está ativo e disponível para uso"
+          }
+        },
+        "required": ["id", "visa_type", "is_active"]
+      },
+      "Error": {
+        "type": "object",
+        "description": "Resposta de erro padrão",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Tipo do erro"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensagem descritiva do erro"
+          }
+        },
+        "required": ["error", "message"]
+      },
+      "RateLimitResponse": {
+        "type": "object",
+        "description": "Resposta quando o rate limit é excedido",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Rate limit exceeded"
+          },
+          "message": {
+            "type": "string",
+            "example": "Too many requests"
+          },
+          "retry_after": {
+            "type": "integer",
+            "description": "Segundos até que uma nova requisição possa ser feita"
+          }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "API key é inválida ou ausente",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized",
+              "message": "Invalid or missing API key"
+            }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Acesso negado - recurso não pertence à sua organização",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Forbidden",
+              "message": "Access denied"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Recurso não encontrado",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Not Found",
+              "message": "Resource not found"
+            }
+          }
+        }
+      },
+      "RateLimitError": {
+        "description": "Rate limit excedido",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RateLimitResponse"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Dados de entrada inválidos",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Bad Request",
+              "message": "Invalid input data"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/cases": {
+      "post": {
+        "summary": "Criar novo caso",
+        "description": "Cria um novo caso de imigração para um cliente existente. O cliente deve pertencer à mesma firma do usuário autenticado.",
+        "operationId": "createCase",
+        "tags": ["Cases"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Caso criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/cases/{id}": {
+      "get": {
+        "summary": "Obter detalhes do caso",
+        "description": "Retorna informações completas de um caso específico, incluindo dados do cliente associado.",
+        "operationId": "getCase",
+        "tags": ["Cases"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID único do caso",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalhes do caso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/cases/{id}/documents": {
+      "post": {
+        "summary": "Adicionar documento ao caso",
+        "description": "Adiciona um novo documento a um caso existente. O documento deve estar previamente hospedado em um serviço de armazenamento acessível.",
+        "operationId": "addCaseDocument",
+        "tags": ["Documents"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID do caso ao qual o documento será adicionado",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Documento adicionado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/cases/{id}/status": {
+      "get": {
+        "summary": "Obter status do caso",
+        "description": "Retorna informações resumidas sobre o status atual de um caso, incluindo datas importantes.",
+        "operationId": "getCaseStatus",
+        "tags": ["Cases"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID do caso",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status do caso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    },
+    "/templates": {
+      "get": {
+        "summary": "Listar templates disponíveis",
+        "description": "Retorna lista de templates de caso ativos disponíveis para a firma autenticada. Templates definem estruturas pré-configuradas para diferentes tipos de visto.",
+        "operationId": "getTemplates",
+        "tags": ["Templates"],
+        "responses": {
+          "200": {
+            "description": "Lista de templates disponíveis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Template"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Cases",
+      "description": "Operações relacionadas a casos de imigração"
+    },
+    {
+      "name": "Documents",
+      "description": "Gerenciamento de documentos de casos"
+    },
+    {
+      "name": "Templates",
+      "description": "Templates e modelos de casos"
+    }
+  ]
+}
